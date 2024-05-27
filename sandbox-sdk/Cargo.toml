@@ -1,0 +1,10 @@
+[package]
+name = "sandbox-sdk"
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+bitflags = "2.5.0"
+itertools = "0.13.0"
+widestring.workspace = true
+windows.workspace = true

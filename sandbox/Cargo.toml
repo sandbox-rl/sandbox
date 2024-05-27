@@ -1,0 +1,12 @@
+[package]
+name = "sandbox"
+authors.workspace = true
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+widestring.workspace = true
+windows.workspace = true
+sandbox-sdk = { path = "../sandbox-sdk" }
