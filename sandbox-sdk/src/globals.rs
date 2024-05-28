@@ -9,11 +9,14 @@ use std::sync::LazyLock;
 use itertools::Itertools;
 use widestring::{widecstr, WideCStr};
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
+use windows::Win32::System::Memory::PAGE_NOCACHE;
 use windows::Win32::System::Memory::{
     VirtualQuery, MEMORY_BASIC_INFORMATION, MEM_COMMIT, MEM_PRIVATE, PAGE_GUARD, PAGE_NOACCESS,
     PAGE_READWRITE,
 };
 use windows::Win32::System::ProcessStatus::{K32GetModuleInformation, MODULEINFO};
+use windows::Win32::System::SystemInformation::GetSystemInfo;
+use windows::Win32::System::SystemInformation::SYSTEM_INFO;
 use windows::Win32::System::Threading::GetCurrentProcess;
 
 /// Converts a byte slice to a pattern string
@@ -29,25 +32,32 @@ fn ptr_to_pat(ptr: *const c_void) -> String {
 
 /// Gets all valid memory pages, removing duplicates and pages with incorrect permissions
 fn pages() -> impl Iterator<Item = &'static [u8]> {
+    let mut sysinfo = SYSTEM_INFO::default();
+    unsafe { GetSystemInfo(&mut sysinfo) };
+    let stop = sysinfo.lpMaximumApplicationAddress;
+
     let mut addr: *mut c_void = null_mut();
 
-    iter::successors(Some(MEMORY_BASIC_INFORMATION::default()), move |pageinfo| {
-        addr = unsafe { addr.add(pageinfo.RegionSize) };
-        let mut pageinfo = *pageinfo;
-        unsafe { VirtualQuery(Some(addr), &mut pageinfo, mem::size_of_val(&pageinfo)) };
-        Some(pageinfo)
-    })
-    .dedup_by(|a, b| {
-        a.AllocationBase == b.AllocationBase && a.AllocationProtect == b.AllocationProtect
+    iter::successors(Some(MEMORY_BASIC_INFORMATION::default()), move |_| {
+        let mut mbi = MEMORY_BASIC_INFORMATION::default();
+        if addr < stop
+            && unsafe { VirtualQuery(Some(addr), &mut mbi, mem::size_of_val(&mbi)) } != 0
+            && unsafe { addr.add(mbi.RegionSize) } > addr
+        {
+            addr = unsafe { addr.add(mbi.RegionSize) };
+            Some(mbi)
+        } else {
+            None
+        }
     })
     .filter(|info| {
-        info.AllocationBase == info.BaseAddress
-            && info.AllocationProtect == PAGE_READWRITE
+        info.AllocationProtect == PAGE_READWRITE
             && info.State == MEM_COMMIT
             && info.Type == MEM_PRIVATE
             && info.RegionSize > 4096
             && !info.Protect.contains(PAGE_GUARD)
             && !info.Protect.contains(PAGE_NOACCESS)
+            && !info.Protect.contains(PAGE_NOCACHE)
     })
     .map(|info| unsafe { slice::from_raw_parts(info.BaseAddress.cast(), info.RegionSize) })
 }
