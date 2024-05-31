@@ -15,7 +15,7 @@ fn main(module: HMODULE) -> ! {
     println!("Welcome to Sandbox");
 
     let start = Instant::now();
-    FName::Names();
+    let _ = FName::Names();
     let end = start.elapsed();
 
     println!("Initialized in {} seconds", end.as_secs_f64());
@@ -23,8 +23,7 @@ fn main(module: HMODULE) -> ! {
     let name = &*FName::Names()[0].unwrap();
     let obj = &*UObject::GObjObjects()[0].unwrap();
 
-    println!("{}", name);
-
+    println!("{name}");
     println!("{}", obj.GetFullName());
 
     while unsafe { GetAsyncKeyState(VK_END.0 as _) } == 0 {

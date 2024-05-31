@@ -45,10 +45,12 @@ type FPointer = *mut ();
 pub struct ueptr<T>(NonNull<T>);
 
 impl<T> ueptr<T> {
+    #[must_use]
     pub fn ptr_cast<U>(self) -> ueptr<U> {
         ueptr(self.0.cast())
     }
 
+    #[must_use]
     pub fn ptr(self) -> *mut T {
         self.0.as_ptr()
     }
@@ -88,6 +90,7 @@ pub trait StaticClass {
     const UNREAL_PACKAGE: &'static str;
     const UNREAL_NAME: &'static str;
 
+    #[must_use]
     fn StaticClass() -> ueptr<UClass> {
         UObject::FindClass(&format!(
             "Class {}::{}",

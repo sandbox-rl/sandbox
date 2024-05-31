@@ -15,9 +15,7 @@ unreal_object!(UClass, UState, "Core", "State");
 impl UClass {
     pub(crate) fn iter_superclass(&self) -> impl Iterator<Item = ueptr<UClass>> {
         iter::successors(Some(ueptr(NonNull::from(self))), |class| {
-            class
-                .SuperStruct
-                .map(|super_class| super_class.ptr_cast::<UClass>())
+            class.SuperStruct.map(ueptr::ptr_cast)
         })
     }
 }

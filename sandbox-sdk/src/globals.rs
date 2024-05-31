@@ -2,7 +2,6 @@ use std::ffi::c_void;
 use std::iter;
 use std::mem;
 use std::num::ParseIntError;
-use std::ptr::null_mut;
 use std::slice;
 use std::sync::LazyLock;
 
@@ -14,6 +13,8 @@ use windows::Win32::System::Memory::{
     PAGE_READWRITE,
 };
 use windows::Win32::System::ProcessStatus::{K32GetModuleInformation, MODULEINFO};
+use windows::Win32::System::SystemInformation::GetSystemInfo;
+use windows::Win32::System::SystemInformation::SYSTEM_INFO;
 use windows::Win32::System::Threading::GetCurrentProcess;
 
 /// Converts a byte slice to a pattern string
@@ -27,9 +28,12 @@ fn ptr_to_pat(ptr: *const c_void) -> String {
     bytes_to_pat(&addr.to_le_bytes())
 }
 
-/// Gets all valid memory pages, removing duplicates and pages with incorrect permissions
+/// Gets all valid memory pages, removing duplicates and pages with incorrect attributes
 fn pages() -> impl Iterator<Item = &'static [u8]> {
-    let mut addr: *mut c_void = null_mut();
+    let mut sysinfo = SYSTEM_INFO::default();
+    unsafe { GetSystemInfo(&mut sysinfo) };
+
+    let mut addr = sysinfo.lpMinimumApplicationAddress;
 
     iter::successors(Some(MEMORY_BASIC_INFORMATION::default()), move |pageinfo| {
         addr = unsafe { addr.add(pageinfo.RegionSize) };
@@ -92,7 +96,7 @@ fn pat_matches(pat: &[Option<u8>], mem: &[u8]) -> bool {
         .all(|(pat, &byte)| pat.is_none() || pat.is_some_and(|p| p == byte))
 }
 
-pub fn find_pattern(pat: &str, memory: &[u8]) -> Option<*const c_void> {
+fn find_pattern(pat: &str, memory: &[u8]) -> Option<*const c_void> {
     let pat = parse_pattern(pat).expect("Failed to parse pattern");
 
     memory
@@ -101,7 +105,7 @@ pub fn find_pattern(pat: &str, memory: &[u8]) -> Option<*const c_void> {
         .map(|s| s.as_ptr().cast())
 }
 
-/// Generates a pattern to find FNameEntries from "None\0" and "ByteProperty\0"
+/// Generates a pattern to find `FNameEntries` from "None\0" and "ByteProperty\0"
 fn name_pattern() -> String {
     const NAMES: [&WideCStr; 2] = [widecstr!("None"), widecstr!("ByteProperty")];
 

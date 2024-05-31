@@ -9,18 +9,22 @@ pub struct TArray<T> {
 }
 
 impl<T> TArray<T> {
+    #[must_use]
     pub fn as_slice(&self) -> &[T] {
         unsafe { slice::from_raw_parts(self.Data, self.ArrayNum as usize) }
     }
 
+    #[must_use]
     pub fn as_mut_slice(&mut self) -> &mut [T] {
         unsafe { slice::from_raw_parts_mut(self.Data, self.ArrayMax as usize) }
     }
 
+    #[must_use]
     pub fn get(&self, index: i32) -> Option<&T> {
         self.deref().get(index as usize)
     }
 
+    #[must_use]
     pub fn get_mut(&mut self, index: i32) -> Option<&mut T> {
         self.deref_mut().get_mut(index as usize)
     }

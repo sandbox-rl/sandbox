@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::OnceLock;
 use std::{ffi::c_void, ptr::NonNull};
-use std::{iter, mem};
+use std::{iter, ptr};
 
 use bitflags::bitflags;
 
@@ -14,35 +14,35 @@ bitflags! {
     #[repr(C)]
     #[derive(Debug, Clone, Copy)]
     pub struct EObjectFlags: u64 {
-        const NoFlags = 0x00000000;
-        const Public = 0x00000001;
-        const Standalone = 0x00000002;
-        const MarkAsNative = 0x00000004;
-        const Transactional = 0x00000008;
-        const ClassDefaultObject = 0x00000010;
-        const ArchetypeObject = 0x00000020;
-        const Transient = 0x00000040;
-        const MarkAsRootSet = 0x00000080;
-        const TagGarbageTemp = 0x00000100;
-        const NeedInitialization = 0x00000200;
-        const NeedLoad = 0x00000400;
-        const KeepForCooker = 0x00000800;
-        const NeedPostLoad = 0x00001000;
-        const NeedPostLoadSubobjects = 0x00002000;
-        const NewerVersionExists = 0x00004000;
-        const BeginDestroyed = 0x00008000;
-        const FinishDestroyed = 0x00010000;
-        const BeingRegenerated = 0x00020000;
-        const DefaultSubObject = 0x00040000;
-        const WasLoaded = 0x00080000;
-        const TextExportTransient = 0x00100000;
-        const LoadCompleted = 0x00200000;
-        const InheritableComponentTemplate = 0x00400000;
-        const DuplicateTransient = 0x00800000;
-        const StrongRefOnFrame = 0x01000000;
-        const NonPIEDuplicateTransient = 0x02000000;
-        const Dynamic = 0x04000000;
-        const WillBeLoaded = 0x08000000;
+        const NoFlags = 0x0000_0000;
+        const Public = 0x0000_0001;
+        const Standalone = 0x0000_0002;
+        const MarkAsNative = 0x0000_0004;
+        const Transactional = 0x0000_0008;
+        const ClassDefaultObject = 0x0000_0010;
+        const ArchetypeObject = 0x0000_0020;
+        const Transient = 0x0000_0040;
+        const MarkAsRootSet = 0x0000_0080;
+        const TagGarbageTemp = 0x0000_0100;
+        const NeedInitialization = 0x0000_0200;
+        const NeedLoad = 0x0000_0400;
+        const KeepForCooker = 0x0000_0800;
+        const NeedPostLoad = 0x0000_1000;
+        const NeedPostLoadSubobjects = 0x0000_2000;
+        const NewerVersionExists = 0x0000_4000;
+        const BeginDestroyed = 0x0000_8000;
+        const FinishDestroyed = 0x0001_0000;
+        const BeingRegenerated = 0x0002_0000;
+        const DefaultSubObject = 0x0004_0000;
+        const WasLoaded = 0x0008_0000;
+        const TextExportTransient = 0x0010_0000;
+        const LoadCompleted = 0x0020_0000;
+        const InheritableComponentTemplate = 0x0040_0000;
+        const DuplicateTransient = 0x0080_0000;
+        const StrongRefOnFrame = 0x0100_0000;
+        const NonPIEDuplicateTransient = 0x0200_0000;
+        const Dynamic = 0x0400_0000;
+        const WillBeLoaded = 0x0800_0000;
     }
 }
 
@@ -84,6 +84,7 @@ pub struct UObject {
 unreal_object!(UObject, "Core", "Object");
 
 impl UObject {
+    #[must_use]
     pub fn GObjObjects() -> &'static TArray<Option<ueptr<UObject>>> {
         unsafe { &*crate::globals::gobjects().cast::<TArray<_>>() }
     }
@@ -100,7 +101,7 @@ impl UObject {
                 Function,
                 Parms,
                 Result,
-            )
+            );
         }
     }
 
@@ -116,7 +117,7 @@ impl UObject {
                 TheStack,
                 Result,
                 Function,
-            )
+            );
         }
     }
 
@@ -139,10 +140,12 @@ impl UObject {
         Some(ueptr(NonNull::from(&*class).cast()))
     }
 
+    #[must_use]
     pub fn GetName(&self) -> String {
         self.Name.to_string()
     }
 
+    #[must_use]
     pub fn GetFullName(&self) -> String {
         let class = self.Class.GetName();
 
@@ -153,6 +156,7 @@ impl UObject {
         format!("{class} {path_name}")
     }
 
+    #[must_use]
     pub fn GetPathName(&self) -> String {
         if let Some(outer) = self.Outer {
             format!("{}::{}", outer.GetPathName(), self.GetName())
@@ -161,14 +165,16 @@ impl UObject {
         }
     }
 
+    #[must_use]
     pub fn IsA<T: UnrealObject>(&self) -> bool {
         let class = T::StaticClass();
         self.Class.iter_superclass().any(|c| c == class)
     }
 
+    #[must_use]
     pub fn Cast<T: UnrealObject>(&self) -> Option<&T> {
         if self.IsA::<T>() {
-            Some(unsafe { mem::transmute::<&UObject, &T>(self) })
+            Some(unsafe { &*ptr::from_ref(self).cast::<T>() })
         } else {
             None
         }

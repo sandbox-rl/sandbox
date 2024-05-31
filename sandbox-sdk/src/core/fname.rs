@@ -9,6 +9,7 @@ pub struct FName {
 }
 
 impl FName {
+    #[must_use]
     pub fn Names() -> &'static TArray<Option<ueptr<FNameEntry>>> {
         unsafe { &*crate::globals::gnames().cast() }
     }
