@@ -113,18 +113,22 @@ fn name_pattern() -> String {
 
     NAMES
         .iter()
-        .flat_map(|name| {
-            let pat = name
-                .as_slice_with_nul()
+        .map(|name| {
+            name.as_slice_with_nul()
                 .iter()
                 .flat_map(|c| c.to_le_bytes())
                 .map(|b| format!("{b:02x}"))
-                .collect::<Vec<String>>();
-
-            let padding = PADDING.into_iter().map(str::to_string).collect();
-            [padding, pat].concat()
+                .collect::<Vec<_>>()
+                .join(" ")
         })
-        .collect::<Vec<_>>()
+        .intersperse_with(|| {
+            PADDING
+                .into_iter()
+                .map(str::to_string)
+                .collect::<Vec<String>>()
+                .join(" ")
+        })
+        .collect::<Vec<String>>()
         .join(" ")
 }
 
@@ -168,6 +172,7 @@ fn gnames_addr() -> Option<*const c_void> {
 
     // Then we find the address that matches the pattern by searching through the pages.
     let fnameentry = mem.find_map(|mem| find_pattern(&fnameentry, mem))?;
+    let fnameentry = unsafe { fnameentry.sub(0x18) };
 
     // We then convert the address to a pattern to search for the pointer.
     let gnames = ptr_to_pat(fnameentry);

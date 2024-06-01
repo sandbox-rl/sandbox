@@ -39,7 +39,7 @@ use std::ptr::NonNull;
 const PROCESS_EVENT_INDEX: usize = 67;
 const CALL_FUNCTION_INDEX: usize = 76;
 
-type FPointer = *mut ();
+type FPointer = usize;
 
 #[repr(transparent)]
 pub struct ueptr<T>(NonNull<T>);
@@ -85,6 +85,9 @@ impl<T> DerefMut for ueptr<T> {
         unsafe { self.0.as_mut() }
     }
 }
+
+unsafe impl<T> Sync for ueptr<T> {}
+unsafe impl<T> Send for ueptr<T> {}
 
 pub trait StaticClass {
     const UNREAL_PACKAGE: &'static str;

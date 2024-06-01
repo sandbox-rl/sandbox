@@ -66,7 +66,7 @@ struct UObjectVtbl {
 
 #[repr(C)]
 pub struct UObject {
-    pub VfTableObject: *mut UObjectVtbl,
+    pub VfTableObject: ueptr<UObjectVtbl>,
     pub HashNext: FPointer,
     pub ObjectFlags: EObjectFlags,
     pub HashOuterNext: FPointer,
