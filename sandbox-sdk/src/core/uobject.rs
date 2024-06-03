@@ -96,12 +96,7 @@ impl UObject {
         Result: Option<NonNull<c_void>>,
     ) {
         unsafe {
-            ((*self.VfTableObject).ProcessEvent)(
-                ueptr(NonNull::from(self)),
-                Function,
-                Parms,
-                Result,
-            );
+            (self.VfTableObject.ProcessEvent)(ueptr(NonNull::from(self)), Function, Parms, Result);
         }
     }
 
@@ -112,7 +107,7 @@ impl UObject {
         Function: ueptr<UFunction>,
     ) {
         unsafe {
-            ((*self.VfTableObject).CallFunction)(
+            (self.VfTableObject.CallFunction)(
                 ueptr(NonNull::from(self)),
                 TheStack,
                 Result,

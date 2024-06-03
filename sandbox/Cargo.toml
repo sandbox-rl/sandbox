@@ -7,6 +7,9 @@ edition.workspace = true
 crate-type = ["cdylib"]
 
 [dependencies]
+egui.workspace = true
+egui-dx11-internal.workspace = true
+retour.workspace = true
 widestring.workspace = true
 windows.workspace = true
-sandbox-sdk = { path = "../sandbox-sdk" }
+sandbox-sdk.workspace = true

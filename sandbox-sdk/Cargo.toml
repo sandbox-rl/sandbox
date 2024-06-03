@@ -6,5 +6,6 @@ edition.workspace = true
 [dependencies]
 bitflags = "2.5.0"
 itertools = "0.13.0"
+memchr = "2.7.2"
 widestring.workspace = true
 windows.workspace = true

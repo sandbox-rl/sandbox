@@ -1,0 +1,10 @@
+[package]
+name = "egui-dx11-internal"
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+clipboard = "0.5.0"
+egui.workspace = true
+parking_lot = "0.12.2"
+windows.workspace = true
