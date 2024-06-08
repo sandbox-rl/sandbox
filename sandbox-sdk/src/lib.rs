@@ -45,63 +45,63 @@ type FPointer = usize;
 pub struct ueptr<T>(NonNull<T>);
 
 impl<T> ueptr<T> {
-    #[must_use]
-    pub fn ptr_cast<U>(self) -> ueptr<U> {
-        ueptr(self.0.cast())
-    }
+	#[must_use]
+	pub fn ptr_cast<U>(self) -> ueptr<U> {
+		ueptr(self.0.cast())
+	}
 
-    #[must_use]
-    pub fn ptr(self) -> *mut T {
-        self.0.as_ptr()
-    }
+	#[must_use]
+	pub fn ptr(self) -> *mut T {
+		self.0.as_ptr()
+	}
 }
 
 impl<T> PartialEq for ueptr<T> {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
+	fn eq(&self, other: &Self) -> bool {
+		self.0 == other.0
+	}
 }
 
 impl<T> Eq for ueptr<T> {}
 
 impl<T> Clone for ueptr<T> {
-    fn clone(&self) -> Self {
-        *self
-    }
+	fn clone(&self) -> Self {
+		*self
+	}
 }
 
 impl<T> Copy for ueptr<T> {}
 
 impl<T> Deref for ueptr<T> {
-    type Target = T;
+	type Target = T;
 
-    fn deref(&self) -> &Self::Target {
-        unsafe { self.0.as_ref() }
-    }
+	fn deref(&self) -> &Self::Target {
+		unsafe { self.0.as_ref() }
+	}
 }
 
 impl<T> DerefMut for ueptr<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { self.0.as_mut() }
-    }
+	fn deref_mut(&mut self) -> &mut Self::Target {
+		unsafe { self.0.as_mut() }
+	}
 }
 
 unsafe impl<T> Sync for ueptr<T> {}
 unsafe impl<T> Send for ueptr<T> {}
 
 pub trait StaticClass {
-    const UNREAL_PACKAGE: &'static str;
-    const UNREAL_NAME: &'static str;
+	const UNREAL_PACKAGE: &'static str;
+	const UNREAL_NAME: &'static str;
 
-    #[must_use]
-    fn StaticClass() -> ueptr<UClass> {
-        UObject::FindClass(&format!(
-            "Class {}::{}",
-            Self::UNREAL_PACKAGE,
-            Self::UNREAL_NAME
-        ))
-        .unwrap()
-    }
+	#[must_use]
+	fn StaticClass() -> ueptr<UClass> {
+		UObject::FindClass(&format!(
+			"Class {}::{}",
+			Self::UNREAL_PACKAGE,
+			Self::UNREAL_NAME
+		))
+		.unwrap()
+	}
 }
 
 pub trait UnrealObject: StaticClass {}
