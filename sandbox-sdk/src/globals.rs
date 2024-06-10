@@ -33,7 +33,7 @@ fn gnames_addr() -> Option<*const c_void> {
 	//
 	// Data might point to a location in memory that looks like the following:
 	//
-	// 0x001ef00 0x001ef22 ...
+	// *mut FNameEntry *mut FNameEntry ...
 	//
 	// These pointers then point to the FNameEntries themselves. In the case of
 	// Rocket League, the first FNameEntries are packed next to one another. For
@@ -59,6 +59,8 @@ fn gnames_addr() -> Option<*const c_void> {
 	// pointer that has a match in global memory, we have found the correct pointer
 	// and the global names.
 
+	let mut pages = pages();
+
 	// First, we generate the pattern we search for to find the location of the
 	// "None" and "ByteProperty" FNameEntries. This starts with "None", not the
 	// padding before it, so we will need to offset this by the padding later.
@@ -67,7 +69,7 @@ fn gnames_addr() -> Option<*const c_void> {
 	// We then search virtual memory by iterating through the allocated pages to
 	// find the generated pattern. Once we find the pattern, we subtract the
 	// FNameEntry padding bytes to get the start of the FNameEntries.
-	let fnameentry = pages().find_map(|mem| find_pattern(&fnameentry, mem))?;
+	let fnameentry = pages.find_map(|mem| find_pattern(&fnameentry, mem))?;
 	let fnameentry = unsafe { fnameentry.sub(FNAMEENTRY_PADDING) };
 
 	// We then search for pointers to the address we found previously. In order to
@@ -90,7 +92,7 @@ fn gnames_addr() -> Option<*const c_void> {
 	//
 	// Next we search global memory for the bytes of the pointer we just found. Once
 	// we find a match, we have found the global names `TArray`.
-	pages()
+	pages
 		.filter_map(|mem| {
 			fnameentry
 				.find(mem)
