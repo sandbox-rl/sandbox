@@ -6,5 +6,5 @@ edition.workspace = true
 [dependencies]
 clipboard = "0.5.0"
 egui.workspace = true
-parking_lot = "0.12.2"
+parking_lot.workspace = true
 windows.workspace = true

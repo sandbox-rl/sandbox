@@ -15,7 +15,7 @@ use windows::Win32::System::ProcessStatus::{K32GetModuleInformation, MODULEINFO}
 use windows::Win32::System::SystemInformation::{GetSystemInfo, SYSTEM_INFO};
 use windows::Win32::System::Threading::GetCurrentProcess;
 
-fn gnames_addr() -> Option<*const c_void> {
+fn gnames_search() -> Option<*const c_void> {
 	// The basic concept for locating the global names is fairly straightforward.
 	//
 	// We essentially work backwards from the memory layout of the global names in
@@ -58,7 +58,6 @@ fn gnames_addr() -> Option<*const c_void> {
 	// memory, which is accessed through the `memory` function. Once we find a
 	// pointer that has a match in global memory, we have found the correct pointer
 	// and the global names.
-
 	let mut pages = pages();
 
 	// First, we generate the pattern we search for to find the location of the
@@ -185,7 +184,7 @@ fn pages() -> impl Iterator<Item = &'static [u8]> {
 }
 
 fn memory() -> &'static [u8] {
-	let module = unsafe { GetModuleHandleW(None).unwrap() };
+	let module = unsafe { GetModuleHandleW(None).unwrap_or_default() };
 
 	let mut mod_info = MODULEINFO::default();
 	let _ = unsafe {
@@ -207,7 +206,7 @@ fn memory() -> &'static [u8] {
 
 pub fn gnames() -> *const c_void {
 	static GNAMES: LazyLock<usize> =
-		LazyLock::new(|| gnames_addr().expect("Getting GNames failed") as usize);
+		LazyLock::new(|| gnames_search().expect("Getting GNames failed") as usize);
 
 	*GNAMES as *mut c_void
 }

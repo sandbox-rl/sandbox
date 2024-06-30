@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 use std::ptr::NonNull;
-use std::sync::OnceLock;
+use std::sync::LazyLock;
 
 use bitflags::bitflags;
 
-use crate::{ueptr, FName, FPointer, UObject, UStruct};
+use crate::{ueptr, EPropertyFlags, FName, FPointer, UObject, UProperty, UStruct};
 
 bitflags! {
 	pub struct EFunctionFlags: i64 {
@@ -65,9 +65,7 @@ unreal_object!(UFunction, UStruct, "Core", "Function");
 
 impl UFunction {
 	pub fn FindFunction(FullName: &str) -> Option<ueptr<UFunction>> {
-		static FUNCTIONS: OnceLock<HashMap<String, i32>> = OnceLock::new();
-
-		let functions = FUNCTIONS.get_or_init(|| {
+		static FUNCTIONS: LazyLock<HashMap<String, i32>> = LazyLock::new(|| {
 			UObject::GObjObjects()
 				.iter()
 				.flatten()
@@ -76,10 +74,29 @@ impl UFunction {
 				.collect()
 		});
 
-		let function = functions
+		let function = FUNCTIONS
 			.get(FullName)
 			.map(|&index| UObject::GObjObjects()[index])??;
 
 		Some(ueptr(NonNull::from(function.Cast()?)))
+	}
+
+	fn iter_all_params(&self) -> impl Iterator<Item = ueptr<UProperty>> {
+		self.Childern.into_iter().flat_map(|children| {
+			children
+				.iter_next()
+				.filter_map(|next| next.Cast::<UProperty>().map(ueptr::from))
+				.filter(|param| param.PropertyFlags.contains(EPropertyFlags::Parm))
+		})
+	}
+
+	pub fn iter_params(&self) -> impl Iterator<Item = ueptr<UProperty>> {
+		self.iter_all_params()
+			.filter(|param| !param.PropertyFlags.contains(EPropertyFlags::ReturnParm))
+	}
+
+	pub fn ret_val(&self) -> Option<ueptr<UProperty>> {
+		self.iter_all_params()
+			.find(|param| param.PropertyFlags.contains(EPropertyFlags::ReturnParm))
 	}
 }

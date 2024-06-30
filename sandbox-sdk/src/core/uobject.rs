@@ -1,7 +1,5 @@
-use std::collections::HashMap;
 use std::ffi::c_void;
 use std::ptr::NonNull;
-use std::sync::OnceLock;
 use std::{iter, ptr};
 
 use bitflags::bitflags;
@@ -70,10 +68,10 @@ pub struct UObject {
 	pub VfTableObject: ueptr<UObjectVtbl>,
 	pub HashNext: FPointer,
 	pub ObjectFlags: EObjectFlags,
-	pub HashOuterNext: FPointer,
-	pub StateFrame: FPointer,
-	pub Linker: Option<ueptr<UObject>>,
-	pub LinkerIndex: FPointer,
+	pub HashOuterNext: Option<ueptr<UObject>>,
+	pub StateFrame: FPointer,            // FStateFrame*
+	pub _Linker: Option<ueptr<UObject>>, // ULinkerLoad*
+	pub LinkerIndex: i64,
 	pub ObjectInternalInteger: i32,
 	pub NetIndex: i32,
 	pub Outer: Option<ueptr<UObject>>,
@@ -117,25 +115,6 @@ impl UObject {
 		}
 	}
 
-	pub fn FindClass(FullName: &str) -> Option<ueptr<UClass>> {
-		static CLASSES: OnceLock<HashMap<String, i32>> = OnceLock::new();
-
-		let classes = CLASSES.get_or_init(|| {
-			UObject::GObjObjects()
-				.iter()
-				.flatten()
-				.filter(|obj| obj.GetFullName().starts_with("Class"))
-				.map(|func| (func.GetFullName(), func.ObjectInternalInteger))
-				.collect()
-		});
-
-		let class = classes
-			.get(FullName)
-			.map(|&index| UObject::GObjObjects()[index])??;
-
-		Some(ueptr(NonNull::from(&*class).cast()))
-	}
-
 	#[must_use]
 	pub fn GetName(&self) -> String {
 		self.Name.to_string()
@@ -154,11 +133,9 @@ impl UObject {
 
 	#[must_use]
 	pub fn GetPathName(&self) -> String {
-		if let Some(outer) = self.Outer {
-			format!("{}::{}", outer.GetPathName(), self.GetName())
-		} else {
-			self.GetName()
-		}
+		iter::successors(self.Outer, |outer| outer.Outer)
+			.map(|c| c.GetName())
+			.fold(self.GetName(), |name, outer| format!("{outer}::{name}"))
 	}
 
 	#[must_use]

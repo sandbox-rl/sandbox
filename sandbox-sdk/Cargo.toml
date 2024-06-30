@@ -7,5 +7,5 @@ edition.workspace = true
 bitflags = "2.5.0"
 itertools = "0.13.0"
 memchr = "2.7.2"
-widestring.workspace = true
+widestring = "1.1.0"
 windows.workspace = true

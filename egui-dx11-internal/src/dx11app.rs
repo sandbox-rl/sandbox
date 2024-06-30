@@ -37,13 +37,22 @@ impl<T, F> Dx11App<T, F>
 where
 	F: FnMut(&Context, &mut T) + Send + 'static,
 {
-	pub fn new(ui: F, state: T) -> Self {
-		Self {
-			dx: OnceLock::new(),
-			ui: Mutex::new(ui),
-			ctx: Context::default(),
-			state: egui::mutex::Mutex::new(state),
-		}
+	pub fn new(ui: F, state: T, ctx: Context) -> Self {
+		let ui = Mutex::new(ui);
+		let state = egui::mutex::Mutex::new(state);
+		let dx = OnceLock::new();
+
+		Self { dx, ui, ctx, state }
+	}
+
+	pub fn with_default_context(ui: F, state: T) -> Self {
+		Self::new(ui, state, Context::default())
+	}
+
+	pub fn with_mut_context(ui: F, state: T, mut_ctx: impl FnOnce(&mut Context)) -> Self {
+		let mut ctx = Context::default();
+		mut_ctx(&mut ctx);
+		Self::new(ui, state, ctx)
 	}
 
 	fn set_blend_state(device: &ID3D11Device, context: &ID3D11DeviceContext) -> WinResult<()> {
@@ -173,7 +182,7 @@ where
 
 		let primitives = self
 			.ctx
-			.tessellate(output.shapes, self.ctx.pixels_per_point())
+			.tessellate(output.shapes, output.pixels_per_point)
 			.into_iter()
 			.filter_map(|prim| {
 				if let Primitive::Mesh(mesh) = prim.primitive {
@@ -265,5 +274,15 @@ where
 		}
 
 		self.ctx.wants_pointer_input()
+	}
+}
+
+impl<T, F> Dx11App<T, F>
+where
+	F: FnMut(&Context, &mut T) + Send + 'static,
+	T: Default,
+{
+	pub fn with_default(ui: F) -> Self {
+		Self::new(ui, T::default(), Context::default())
 	}
 }

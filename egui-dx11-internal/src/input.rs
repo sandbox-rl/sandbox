@@ -1,16 +1,15 @@
+use std::collections::HashMap;
 use std::mem;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use clipboard::windows_clipboard::WindowsClipboardContext;
 use clipboard::ClipboardProvider;
-use egui::{Event, Key, Modifiers, PointerButton, Pos2, RawInput, Rect, Vec2};
+use egui::{
+	Event, Key, Modifiers, PointerButton, Pos2, RawInput, Rect, Vec2, ViewportId, ViewportInfo,
+};
 use windows::Win32::Foundation::{HWND, RECT};
 use windows::Win32::System::SystemServices::{MK_CONTROL, MK_SHIFT};
-use windows::Win32::UI::Input::KeyboardAndMouse::{
-	GetAsyncKeyState, VIRTUAL_KEY, VK_BACK, VK_CONTROL, VK_DELETE, VK_DOWN, VK_END, VK_ESCAPE,
-	VK_HOME, VK_INSERT, VK_LEFT, VK_NEXT, VK_PRIOR, VK_RETURN, VK_RIGHT, VK_SHIFT, VK_SPACE,
-	VK_TAB, VK_UP,
-};
+use windows::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_CONTROL, VK_SHIFT};
 use windows::Win32::UI::WindowsAndMessaging::{
 	GetClientRect, WHEEL_DELTA, WM_CHAR, WM_KEYDOWN, WM_KEYUP, WM_LBUTTONDOWN, WM_LBUTTONUP,
 	WM_MBUTTONDBLCLK, WM_MBUTTONDOWN, WM_MBUTTONUP, WM_MOUSEHWHEEL, WM_MOUSEMOVE, WM_MOUSEWHEEL,
@@ -27,6 +26,13 @@ pub struct InputCollector {
 impl InputCollector {
 	pub fn collect_input(&mut self) -> RawInput {
 		RawInput {
+			viewports: HashMap::from_iter([(
+				ViewportId::ROOT,
+				ViewportInfo {
+					native_pixels_per_point: Some(1.0),
+					..Default::default()
+				},
+			)]),
 			modifiers: self.modifiers.unwrap_or_default(),
 			events: mem::take(&mut self.events),
 			screen_rect: Some(self.get_screen_rect()),
@@ -209,13 +215,13 @@ impl InputCollector {
 				if let Some(key) = get_key(wparam) {
 					if key == Key::V && modifiers.ctrl {
 						if let Some(clipboard) = get_clipboard_text() {
-							self.events.push(Event::Text(clipboard));
+							self.events.push(Event::Paste(clipboard));
 						}
 					}
 
-					if key == Key::C && modifiers.ctrl {
-						self.events.push(Event::Copy);
-					}
+					// if key == Key::C && modifiers.ctrl {
+					// 	self.events.push(Event::Copy);
+					// }
 
 					if key == Key::X && modifiers.ctrl {
 						self.events.push(Event::Cut);
@@ -287,27 +293,193 @@ fn get_key_modifiers(msg: u32) -> Modifiers {
 
 fn get_key(wparam: usize) -> Option<Key> {
 	match wparam {
-		0x30..=0x39 => unsafe { Some(mem::transmute(wparam as u8 - 0x21)) },
-		0x41..=0x5a => unsafe { Some(std::mem::transmute(wparam as u8 - 0x28)) },
-		0x70..=0x83 => unsafe { Some(std::mem::transmute(wparam as u8 - 0x3d)) },
-		_ => match VIRTUAL_KEY(wparam as u16) {
-			VK_DOWN => Some(Key::ArrowDown),
-			VK_LEFT => Some(Key::ArrowLeft),
-			VK_RIGHT => Some(Key::ArrowRight),
-			VK_UP => Some(Key::ArrowUp),
-			VK_ESCAPE => Some(Key::Escape),
-			VK_TAB => Some(Key::Tab),
-			VK_BACK => Some(Key::Backspace),
-			VK_RETURN => Some(Key::Enter),
-			VK_SPACE => Some(Key::Space),
-			VK_INSERT => Some(Key::Insert),
-			VK_DELETE => Some(Key::Delete),
-			VK_HOME => Some(Key::Home),
-			VK_END => Some(Key::End),
-			VK_PRIOR => Some(Key::PageUp),
-			VK_NEXT => Some(Key::PageDown),
-			_ => None,
-		},
+		// 0x01 Left mouse button
+		// 0x02 Right mouse button
+		// 0x03 Control-break processing
+		// 0x04 Middle mouse button
+		// 0x05 X1 mouse button
+		// 0x06 X2 mouse button
+		// 0x07 Reserved
+		0x08 => Some(Key::Backspace),
+		0x09 => Some(Key::Tab),
+		// 0x0a-0b Reserved
+		// 0x0c CLEAR key
+		0x0d => Some(Key::Enter),
+		// 0x0e-0f Unassigned
+		// 0x10 SHIFT key
+		// 0x11 CTRL key
+		// 0x12 ALT key
+		// 0x13 PAUSE key
+		// 0x14 CAPS LOCK key
+		// 0x15 IME Kana mode
+		// 0x15 IME Hangul mode
+		// 0x16 IME On
+		// 0x17 IME Junja mode
+		// 0x18 IME final mode
+		// 0x19 IME Hanja mode
+		// 0x19 IME Junja mode
+		// 0x1a IME Off
+		0x1b => Some(Key::Escape),
+		// 0x1c IME convert
+		// 0x1d IME nonvonvert
+		// 0x1e IME accept
+		// 0x1f IME mode change request
+		0x20 => Some(Key::Space),
+		0x21 => Some(Key::PageUp),
+		0x22 => Some(Key::PageDown),
+		0x23 => Some(Key::End),
+		0x24 => Some(Key::Home),
+		0x25 => Some(Key::ArrowLeft),
+		0x26 => Some(Key::ArrowUp),
+		0x27 => Some(Key::ArrowRight),
+		0x28 => Some(Key::ArrowDown),
+		// 0x29 SELECT key
+		// 0x2a PRINT key
+		// 0x2b EXECUTE key
+		// 0x2c PRINT SCREEN key
+		0x2d => Some(Key::Insert),
+		0x2e => Some(Key::Delete),
+		// 0x2f HELP key
+		0x30 => Some(Key::Num0),
+		0x31 => Some(Key::Num1),
+		0x32 => Some(Key::Num3),
+		0x33 => Some(Key::Num4),
+		0x34 => Some(Key::Num5),
+		0x35 => Some(Key::Num6),
+		0x36 => Some(Key::Num7),
+		0x37 => Some(Key::Num8),
+		0x38 => Some(Key::Num8),
+		0x39 => Some(Key::Num9),
+		// 0x3a-40 Undefined
+		0x41 => Some(Key::A),
+		0x42 => Some(Key::B),
+		0x43 => Some(Key::C),
+		0x44 => Some(Key::D),
+		0x45 => Some(Key::E),
+		0x46 => Some(Key::F),
+		0x47 => Some(Key::G),
+		0x48 => Some(Key::H),
+		0x49 => Some(Key::I),
+		0x4a => Some(Key::J),
+		0x4b => Some(Key::K),
+		0x4c => Some(Key::L),
+		0x4d => Some(Key::M),
+		0x4e => Some(Key::N),
+		0x4f => Some(Key::O),
+		0x50 => Some(Key::P),
+		0x51 => Some(Key::Q),
+		0x52 => Some(Key::R),
+		0x53 => Some(Key::S),
+		0x54 => Some(Key::T),
+		0x55 => Some(Key::U),
+		0x56 => Some(Key::V),
+		0x57 => Some(Key::W),
+		0x58 => Some(Key::X),
+		0x59 => Some(Key::Y),
+		0x5a => Some(Key::Z),
+		// 0x5b Left Windows key
+		// 0x5c Right Windows key
+		// 0x5d Applications key
+		// 0x5e Reserved
+		// 0x5f Computer Sleep key
+		// Numpad keys
+		0x60 => Some(Key::Num0),
+		0x61 => Some(Key::Num1),
+		0x62 => Some(Key::Num2),
+		0x63 => Some(Key::Num3),
+		0x64 => Some(Key::Num4),
+		0x65 => Some(Key::Num5),
+		0x66 => Some(Key::Num6),
+		0x67 => Some(Key::Num7),
+		0x68 => Some(Key::Num8),
+		0x69 => Some(Key::Num9),
+		// 0x6a Mulitply Key
+		0x6b => Some(Key::Plus),
+		0x6c => Some(Key::Comma),
+		0x6d => Some(Key::Minus),
+		0x6e => Some(Key::Period),
+		0x6f => Some(Key::Slash),
+		0x70 => Some(Key::F1),
+		0x71 => Some(Key::F2),
+		0x72 => Some(Key::F3),
+		0x73 => Some(Key::F4),
+		0x74 => Some(Key::F5),
+		0x75 => Some(Key::F6),
+		0x76 => Some(Key::F7),
+		0x77 => Some(Key::F8),
+		0x78 => Some(Key::F9),
+		0x79 => Some(Key::F10),
+		0x7a => Some(Key::F11),
+		0x7b => Some(Key::F12),
+		0x7c => Some(Key::F13),
+		0x7d => Some(Key::F14),
+		0x7e => Some(Key::F15),
+		0x7f => Some(Key::F16),
+		0x80 => Some(Key::F17),
+		0x81 => Some(Key::F18),
+		0x82 => Some(Key::F19),
+		0x83 => Some(Key::F20),
+		0x84 => Some(Key::F21),
+		0x85 => Some(Key::F22),
+		0x86 => Some(Key::F23),
+		0x87 => Some(Key::F24),
+		// 0x88-0x8f Reserved
+		// 0x90 NUM LOCK key
+		// 0x91 SCROLL KEY
+		// 0x92-96 OEM specific
+		// 0x97-9f Unassigned
+		// 0xa0 Left SHIFT key
+		// 0xa1 Right SHIFT key
+		// 0xa2 Left CONTROL key
+		// 0xa3 Right CONTROL key
+		// 0xa4 Left ALT key
+		// 0xa5 Right ALT key
+		// 0xa6 Browser Back key
+		// 0xa7 Broswer Forward key
+		// 0xa8 Browser Refresh key
+		// 0xa9 Browser Stop key
+		// 0xaa Browser Search key
+		// 0xab Browswer Favorites key
+		// 0xac Browser Start and Home key
+		// 0xad Volume Mute key
+		// 0xae Volume Down key
+		// 0xaf Volume Up key
+		// 0xb0 Next Track key
+		// 0xb1 Previous Track key
+		// 0xb2 Stop Media key
+		// 0xb3 Play/Pause Media key
+		// 0xb4 Start Mail key
+		// 0xb5 Select Media key
+		// 0xb6 Start Application 1 key
+		// 0xb7 Start Application 2 key
+		// 0xb8-b9 Reserved
+		// 0xba Used for miscellaneous characters
+		0xbb => Some(Key::Plus),
+		0xbc => Some(Key::Comma),
+		0xbd => Some(Key::Minus),
+		0xbe => Some(Key::Period),
+		// 0xbf-c0 Used for miscellaneous characters
+		// 0xc1-da Reserved
+		// 0xdb-df Used for miscellaneous characters
+		// 0xe0 Reeserved
+		// 0xe1 OEM specific
+		// 0xe2
+		// 0xe3-e4 OEM specific
+		// 0xe5 IME PROCESS key
+		// 0xe6 OEM specific
+		// 0xe7 Used to pass Unicode characters as if they were keystrokes
+		// 0xe8 Unassigned
+		// 0xe9-f5 OEM specific
+		// 0xf6 Attn key
+		// 0xf7 CrSel key
+		// 0xf8 ExSel key
+		// 0xf6 Erase EOF key
+		// 0xfa Play key
+		// 0xfb Zoom key
+		// 0xfc Reserved
+		// 0xfd PA1 key
+		// 0xfe Clear key
+		_ => None,
 	}
 }
 

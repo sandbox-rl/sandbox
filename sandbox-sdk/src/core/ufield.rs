@@ -1,3 +1,5 @@
+use std::iter;
+
 use super::UObject;
 use crate::ueptr;
 
@@ -9,3 +11,9 @@ pub struct UField {
 }
 
 unreal_object!(UField, UObject, "Core", "Field");
+
+impl UField {
+	pub(crate) fn iter_next(&self) -> impl Iterator<Item = ueptr<UField>> {
+		iter::successors(Some(ueptr::from(self)), |next| next.Next)
+	}
+}

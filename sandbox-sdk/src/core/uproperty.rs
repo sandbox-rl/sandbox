@@ -3,7 +3,7 @@ use bitflags::bitflags;
 use crate::UField;
 
 bitflags! {
-	struct EPropertyFlags: u64 {
+	pub struct EPropertyFlags: u64 {
 		const Edit = 0x0000_0000_0000_0001;
 		const Const = 0x0000_0000_0000_0002;
 		const Input = 0x0000_0000_0000_0004;
@@ -61,13 +61,14 @@ bitflags! {
 #[repr(C)]
 pub struct UProperty {
 	_super: UField,
-	pub ArrayDim: i32,
-	pub ElementSize: i32,
+	pub ArrayDim: u32,
+	pub ElementSize: u32,
 	pub PropertyFlags: EPropertyFlags,
 	_padding_0: [u8; 0x10],
 	pub PropertySize: u32,
-	pub Offset: i32,
-	_padding_1: [u8; 0x2c],
+	_padding_1: [u8; 0x4],
+	pub Offset: u32,
+	_padding_2: [u8; 0x2c],
 }
 
 unreal_object!(UProperty, UField, "Core", "Property");

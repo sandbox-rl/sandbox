@@ -31,6 +31,7 @@ macro_rules! unreal_object {
 
 mod core;
 mod globals;
+pub mod reflection;
 
 pub use core::*;
 use std::ops::{Deref, DerefMut};
@@ -53,6 +54,12 @@ impl<T> ueptr<T> {
 	#[must_use]
 	pub fn ptr(self) -> *mut T {
 		self.0.as_ptr()
+	}
+}
+
+impl<T> From<&T> for ueptr<T> {
+	fn from(value: &T) -> Self {
+		ueptr(NonNull::from(value))
 	}
 }
 
@@ -95,7 +102,7 @@ pub trait StaticClass {
 
 	#[must_use]
 	fn StaticClass() -> ueptr<UClass> {
-		UObject::FindClass(&format!(
+		UClass::FindClass(&format!(
 			"Class {}::{}",
 			Self::UNREAL_PACKAGE,
 			Self::UNREAL_NAME
